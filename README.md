@@ -13,7 +13,7 @@ If configured, it provisiones the affected ports with a new (blocking) profile.
 If provisioning is configured and archived alerts are detected,
 the plugin reprovisions the port to the originating (unblocking )profile.
 
-## Prerequisite
+## Prerequisites
 ### 1. Alert Notification
 By default, POE disconnect events are notified as events only. Since events can not be archived,
 they must be notified as alerts (Settings / Notifications / Switch Events / PoE port disconnected)
