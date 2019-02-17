@@ -25,8 +25,14 @@ import (
 	"github.com/BFLB/unifi"
 )
 
-const VERSION = "v0.2"
+// Goreleaser
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
+// Flags
 var (
 	host              = flag.String("host", "", "Controller hostname")
 	port              = flag.String("port", "8443", "Controller port")
@@ -34,7 +40,7 @@ var (
 	user              = flag.String("user", "", "Controller username")
 	pass              = flag.String("pass", "", "Controller password")
 	path              = flag.String("path", "", "Path of output file")
-	version           = flag.Int("version", 5, "Controller base version")
+	contVersion       = flag.Int("version", 5, "Controller base version")
 	warning           = flag.String("warning", "7", "Execution Time(s) warning threshold")
 	critical          = flag.String("critical", "10", "Execution Time(s) critical threshold")
 	profileBlock      = flag.String("profileBlock", "", "If set, affected ports will be set to the given port profile, e.g. disabled")
@@ -80,7 +86,7 @@ func main() {
 
 	// Version information
 	if *v {
-		message = fmt.Sprintf("Version: check=%s, monitoring-library:%s", VERSION, checker.VERSION)
+		message = fmt.Sprintf("%v, commit %v, built at %v, (monitoring-library:%s)", version, commit, date, checker.VERSION)
 		check.Status.Unknown()
 		check.Message(message)
 		writer.Write(check)
@@ -119,7 +125,7 @@ func main() {
 	}
 
 	// Login to UniFi controller
-	u, err := unifi.Login(*user, *pass, *host, *port, *site, *version)
+	u, err := unifi.Login(*user, *pass, *host, *port, *site, *contVersion)
 	if err != nil {
 		message = fmt.Sprintf("Login error:%s", err.Error())
 		check.Status.Unknown()

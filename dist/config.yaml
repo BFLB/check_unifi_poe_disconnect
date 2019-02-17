@@ -86,7 +86,7 @@ sign:
   signature: ${artifact}.sig
   artifacts: none
 env_files:
-  github_token: $HOME/githubtokens/goreleaser/token.txt
+  github_token: ~/.config/goreleaser/github_token
 before:
   hooks:
   - go generate ./...
