@@ -13,9 +13,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
+	"time"
 
 	checker "github.com/BFLB/monitoringplugin"
+	p "github.com/BFLB/monitoringplugin/performancedata"
 	r "github.com/BFLB/monitoringplugin/range"
 	"github.com/BFLB/monitoringplugin/status"
 	activeWriter "github.com/BFLB/monitoringplugin/writers/activeWriter"
@@ -56,6 +59,9 @@ type counters struct {
 }
 
 func main() {
+
+	// Timestamp to calculate execution time
+	timestampStart := time.Now()
 
 	// Counters
 	counters := counters{}
@@ -175,27 +181,63 @@ func main() {
 		}
 	}
 
-	// Everything done. Setup return values and quit
-	// Set status
-	status := status.New()
-	if counters.events > 0 {
-		status.Critical(false)
-	}
-	if counters.failed > 0 {
-		status.Critical(false)
-	}
-	if counters.blocked > 0 {
-		status.Warning(false)
-	}
-	// TODO set status on execution time
-	status.Ok(false)
-	check.Status = status
+	tExec := time.Now().Sub(timestampStart).Seconds()
+	// HACK: Better way to do it?
+	// Round to 3 digits
+	tExecRounded := fmt.Sprintf("%.3f", tExec)
+	tExec, _ = strconv.ParseFloat(tExecRounded, 64)
 
 	// Add message
-	message = fmt.Sprintf("%d active matching alerts, %d ports blocked (%d provisioned-block, %d provisioned-unblock, %d failed)", counters.events, counters.blocked, counters.provisionedBlock, counters.provisionedUnblock, counters.failed)
+	message = fmt.Sprintf("%d active matching alerts, %d ports blocked (%d provisioned-block, %d provisioned-unblock, %d failed, EcecTime %f)", counters.events, counters.blocked, counters.provisionedBlock, counters.provisionedUnblock, counters.failed, tExec)
 	check.Message(message)
 
-	// TODO Add performance data
+	// Set ranges for Executiontime warning and critical
+	rangeWarn := r.New()
+	rangeWarn.Parse(*warning)
+	rangeCrit := r.New()
+	rangeCrit.Parse(*critical)
+
+	// Add performance data
+	if *perfdata {
+		dataObj, _ := p.New("ActMatchAlerts", float64(counters.events), "", nil, r.New(), nil, nil)
+		check.Perfdata(dataObj)
+
+		dataObj, _ = p.New("PortsBlocked", float64(counters.blocked), "", r.New(), nil, nil, nil)
+		check.Perfdata(dataObj)
+
+		dataObj, _ = p.New("ProvBlocked", float64(counters.provisionedBlock), "", nil, nil, nil, nil)
+		check.Perfdata(dataObj)
+
+		dataObj, _ = p.New("ProvUnblocked", float64(counters.provisionedBlock), "", nil, nil, nil, nil)
+		check.Perfdata(dataObj)
+
+		dataObj, _ = p.New("Failed", float64(counters.failed), "", nil, r.New(), nil, nil)
+		check.Perfdata(dataObj)
+
+		dataObj, _ = p.New("ExecTime", tExec, "s", rangeWarn, rangeCrit, nil, nil)
+		check.Perfdata(dataObj)
+
+	}
+
+	// Everything done. Setup return values and quit
+	// Set Status
+	// New Status (OK)
+	status := status.New()
+
+	// Status Events (Critical if > 0)
+	status.Threshold(float64(counters.events), nil, r.New(), false)
+
+	// Status Failed (Critical if > 0)
+	status.Threshold(float64(counters.failed), nil, r.New(), false)
+
+	// Status blocked (Warning if > 0)
+	status.Threshold(float64(counters.blocked), r.New(), nil, false)
+
+	// Status Executiontime (Warning if > warning, Critical if > critical)
+	status.Threshold(tExec, rangeWarn, rangeCrit, false)
+
+	// Assign Status to check
+	check.Status = status
 
 	// Write results
 	writer.Write(check)
