@@ -11,7 +11,7 @@ Then it returns the number of active (non archived) POE disconnect events of por
 If configured, it provisiones the affected ports with a new (blocking) profile.
 
 If provisioning is configured and archived alerts are detected,
-the plugin reprovisions the port to the originating (unblocking )profile.
+the plugin reprovisions the port to the originating (unblocking) profile.
 
 ## Prerequisites
 ### 1. Alert Notification
